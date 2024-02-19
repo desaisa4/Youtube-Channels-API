@@ -3,15 +3,9 @@ package com.youtube.client.service;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
-import java.util.ResourceBundle;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.ssl.PropertiesSslBundle;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
-
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -30,6 +24,8 @@ public class YoutubeService {
 	public static final String APPLICATION_NAME= "Youtube_API_APPLICAITION";
 	
 	public static final String RANDOM_CHANNEL_ID = "UC-lHJZR3Gqxm24_Vd_AJ5Yw";
+	
+	private static YouTube youtubeService;
 	
 	@Autowired
 	private Environment env;
@@ -59,28 +55,20 @@ public class YoutubeService {
 		
 	}
 	
-	public String getChannels() throws GeneralSecurityException, IOException {
+	public List<Channel> getChannels(String channelName) throws GeneralSecurityException, IOException{
 		
-		YouTube youtubeService = getService();
-		String channelTitle = "";
-		
-		YouTube.Channels.List request = youtubeService.channels().list("snippet,contentDetails,statistics");
-		
-		
+		youtubeService = getService();
 		API_KEY = env.getProperty("apikey");
-		System.out.println(API_KEY);
+		
+		YouTube.Channels.List request = youtubeService.channels().list("snippet,contentDetails,statistics").setForUsername(channelName);
+		
 		request.setKey(API_KEY);
-		request.setId(RANDOM_CHANNEL_ID);
 		
 		ChannelListResponse response = request.execute();
 		
 		List<Channel> channels = response.getItems();
 		
-		for (Channel channel : channels) {
-			channelTitle = channel.getSnippet().getTitle();
-		}
-		return channelTitle;
-		
+		return (channels);
 	}
 
 }

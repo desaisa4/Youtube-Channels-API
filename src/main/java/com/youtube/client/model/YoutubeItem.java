@@ -1,3 +1,7 @@
 package com.youtube.client.model;
 
-public record YoutubeItem(String channelTitle){}
+import java.util.List;
+
+import com.google.api.services.youtube.model.Channel;
+
+public record YoutubeItem(List<Channel> channelTitle){}
