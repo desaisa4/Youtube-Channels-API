@@ -54,6 +54,7 @@ public class ApiController {
 		
 		// Approach 2
 		if (youtubeItem.channelTitle() == null) {
+			System.out.println("Calling Alternate approach");
 			Channel alternateResponse;
 			alternateResponse = service.getChannelBySearch(channelName);
 			youtubeItem = new YoutubeItem(alternateResponse);

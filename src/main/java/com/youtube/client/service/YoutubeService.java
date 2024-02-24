@@ -29,9 +29,9 @@ public class YoutubeService {
 	private static YouTube youtubeService;
 	
 	@Autowired
-	private static Environment env;
+	private Environment env;
 	
-	public static final String API_KEY = env.getProperty("apikey");;
+	public static String API_KEY;
 	
 	/**
 	 * Initializes and returns object that will make Data requests to the YouTube API.
@@ -67,6 +67,10 @@ public class YoutubeService {
 		
 		youtubeService = getService();
 		
+		API_KEY = env.getProperty("apikey");
+		
+		System.out.println(API_KEY);
+		
 		YouTube.Channels.List request = youtubeService.channels().list("snippet,contentDetails,statistics");
 		
 		request.setKey(API_KEY);
@@ -74,7 +78,12 @@ public class YoutubeService {
 		ChannelListResponse response = request.setForUsername(channelName).setMaxResults((long) 1).execute();
 		
 		// We only have one result so get the first one.
-		Channel channel = response.getItems().get(0);
+		Channel channel = null;
+		
+		if (response.getItems()!=null) {
+			channel = response.getItems().get(0);
+		}
+		
 		
 		return (channel);
 	}
