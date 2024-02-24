@@ -15,6 +15,9 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.youtube.YouTube;
 import com.google.api.services.youtube.model.Channel;
 import com.google.api.services.youtube.model.ChannelListResponse;
+import com.google.api.services.youtube.model.ResourceId;
+import com.google.api.services.youtube.model.SearchListResponse;
+import com.google.api.services.youtube.model.SearchResult;
 
 @Component
 public class YoutubeService {
@@ -23,18 +26,15 @@ public class YoutubeService {
 	
 	public static final String APPLICATION_NAME= "Youtube_API_APPLICAITION";
 	
-	public static final String RANDOM_CHANNEL_ID = "UC-lHJZR3Gqxm24_Vd_AJ5Yw";
-	
 	private static YouTube youtubeService;
 	
 	@Autowired
-	private Environment env;
+	private static Environment env;
 	
-	public static String API_KEY;
+	public static final String API_KEY = env.getProperty("apikey");;
 	
 	/**
-	 * 
-	 * Initializes and returns object that will mate Data requests to the YouTube API.
+	 * Initializes and returns object that will make Data requests to the YouTube API.
 	 * 
 	 * @return
 	 * @throws GeneralSecurityException
@@ -55,20 +55,92 @@ public class YoutubeService {
 		
 	}
 	
-	public List<Channel> getChannels(String channelName) throws GeneralSecurityException, IOException{
+	/**
+	 * Makes a call to the Youtube API to find the channel by Username. In most cases the channel name is also the Username.
+	 * 
+	 * @param channelName : Channel name provided by the API call.
+	 * @return Channel object with some statistics about the channel
+	 * @throws GeneralSecurityException
+	 * @throws IOException
+	 */
+	public Channel getChannelByUsername(String channelName) throws GeneralSecurityException, IOException{
 		
 		youtubeService = getService();
-		API_KEY = env.getProperty("apikey");
 		
-		YouTube.Channels.List request = youtubeService.channels().list("snippet,contentDetails,statistics").setForUsername(channelName);
+		YouTube.Channels.List request = youtubeService.channels().list("snippet,contentDetails,statistics");
 		
 		request.setKey(API_KEY);
 		
-		ChannelListResponse response = request.execute();
+		ChannelListResponse response = request.setForUsername(channelName).setMaxResults((long) 1).execute();
 		
-		List<Channel> channels = response.getItems();
+		// We only have one result so get the first one.
+		Channel channel = response.getItems().get(0);
 		
-		return (channels);
+		return (channel);
+	}
+	
+	/**
+	 * Makes a call to the Youtube API to search using the Q parameter. This can return various types of objects including Videos and Channels.
+	 * Given we are searching by using the channel name, the first object returned by the Youtube API is always a channel. After we check that is the case
+	 * We can use the unique ID associated by that channel and get the actual Channel object.
+	 * 
+	 * @param channelName : Channel name provided by the API call.
+	 * @return Channel object with some statistics about the channel
+	 * @throws GeneralSecurityException
+	 * @throws IOException
+	 */
+	public Channel getChannelBySearch(String channelName) throws GeneralSecurityException, IOException {
+		
+		youtubeService = getService();
+		
+		YouTube.Search.List request = youtubeService.search().list("snippet");
+		
+		request.setKey(API_KEY);
+		
+		request.setType("channel");
+		
+		// Only grabs the first result. If the channel name is correct then this will be a channel.
+		SearchListResponse response = request.setMaxResults(25L).setQ(channelName).setMaxResults((long) 1).execute();
+		
+		String channelId = null;
+		
+		// Store the ID of the result we found. This is not the same as the Channel ID.
+		ResourceId resourceId = response.getItems().get(0).getId();
+		
+		// Check if the result is a Channel. If so get its Channel ID
+		if(resourceId.getKind().equals("youtube#channel")) {
+			channelId = resourceId.getChannelId();
+		}
+		
+		// Make a call to get Channel object by Channel ID
+		if (channelId!=null) {
+			Channel channel = getChannelById(channelId);
+			return channel;
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Makes a call to the Youtube API to find the Channel object by Channel ID. This will always return a channel as long as a correct Channel ID is provided.
+	 * @param channelId
+	 * @return Returns a Channel Object
+	 * @throws GeneralSecurityException
+	 * @throws IOException
+	 */
+	private Channel getChannelById (String channelId) throws GeneralSecurityException, IOException {
+		
+		youtubeService = getService();
+		
+		YouTube.Channels.List request = youtubeService.channels().list("snippet,contentDetails,statistics");
+		
+		request.setKey(API_KEY);
+		
+		ChannelListResponse response = request.setId(channelId).setMaxResults((long) 1).execute();
+		
+		Channel channel = response.getItems().get(0);
+		return channel;
+		
 	}
 
 }
